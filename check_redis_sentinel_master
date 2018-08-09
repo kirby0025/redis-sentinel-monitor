@@ -1,0 +1,32 @@
+#! /usr/bin/env python3
+
+import os
+import sys 
+import argparse
+import redis
+from redis.sentinel import Sentinel
+
+STATES = {'OK':0, 'WARNING': 1, 'CRITICAL': 2, 'UNKNOWN':3}
+STATE = 'OK'
+
+parser = argparse.ArgumentParser(description='Redis-Sentinel checker')
+parser.add_argument('--host',metavar='host',help='Address of Redis-Sentinel host')
+parser.add_argument('--port',metavar='port',help='Port of Redis-Sentinel host')
+parser.add_argument('--master',metavar='master',help='Name of Master that Redis-Sentinel monitors')
+ARGS = vars(parser.parse_args())
+
+try:
+    redis_connection = redis.Redis(ARGS['host'],ARGS['port'])
+    redis_info = redis_connection.info()
+except (socket.error, redis.exceptions.ConnectionError, redis.exceptions.ResponseError):
+    STATE = 'CRITICAL'
+    print("CRITICAL: Problem establishing connection to Redis-Sentinel")
+    sys.exit(STATE)
+sentinel = Sentinel([(ARGS['host'],ARGS['port'])])
+try:
+    master_info = sentinel.discover_master(ARGS['master'])
+except (redis.sentinel.MasterNotFoundError):
+    STATE = 'CRITICAL'
+    print("CRITICAL : no master")
+    sys.exit(STATE)
+sys.exit(STATE)
