@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
+""" Script to check Redis-Sentinel, Redis-master and Redis-slave health """
 
-import os
-import sys 
+import sys
 import argparse
 import redis
 from redis.sentinel import Sentinel
@@ -10,23 +10,46 @@ STATES = {'OK':0, 'WARNING': 1, 'CRITICAL': 2, 'UNKNOWN':3}
 STATE = 'OK'
 
 parser = argparse.ArgumentParser(description='Redis-Sentinel checker')
-parser.add_argument('--host',metavar='host',help='Address of Redis-Sentinel host')
-parser.add_argument('--port',metavar='port',help='Port of Redis-Sentinel host')
-parser.add_argument('--master',metavar='master',help='Name of Master that Redis-Sentinel monitors')
+parser.add_argument('--host', metavar='host', help='Address of Redis-Sentinel host')
+parser.add_argument('--port', metavar='port', help='Port of Redis-Sentinel host')
+parser.add_argument('--master', metavar='master', help="Master's name that Redis-Sentinel monitors")
+parser.add_argument('--warning', metavar='warning', help="Comma separated list of threshold for min slaves and sentinels running")
+parser.add_argument('--critical', metavar='critical', help="Comma separated list of threshold to trigger critical state")
 ARGS = vars(parser.parse_args())
 
 try:
-    redis_connection = redis.Redis(ARGS['host'],ARGS['port'])
-    redis_info = redis_connection.info()
-except (socket.error, redis.exceptions.ConnectionError, redis.exceptions.ResponseError):
+    redisConnection = redis.Redis(ARGS['host'], ARGS['port'])
+    redisInfo = redisConnection.info()
+except (redis.exceptions.ConnectionError, redis.exceptions.ResponseError):
     STATE = 'CRITICAL'
     print("CRITICAL: Problem establishing connection to Redis-Sentinel")
     sys.exit(STATE)
-sentinel = Sentinel([(ARGS['host'],ARGS['port'])])
+sentinel = Sentinel([(ARGS['host'], ARGS['port'])])
 try:
-    master_info = sentinel.discover_master(ARGS['master'])
-except (redis.sentinel.MasterNotFoundError):
+    masterInfo = sentinel.discover_master(ARGS['master'])
+except redis.sentinel.MasterNotFoundError:
     STATE = 'CRITICAL'
     print("CRITICAL : no master")
+    sys.exit(STATE)
+
+warningThreshold = ARGS['warning'].split(',')
+criticalThreshold = ARGS['warning'].split(',')
+activeSlaves = sentinel.discover_slaves(ARGS['master'])
+activeSentinel = sentinel.discover_slaves(ARGS['master'])
+if len(activeSlaves) < warningThreshold[0]:
+    STATE = 'WARNING'
+    print("Warning, missing slaves")
+    sys.exit(STATE)
+if len(activeSentinel) < warningThreshold[1]:
+    STATE = 'WARNING'
+    print("Warning, missing sentinels")
+    sys.exit(STATE)
+if len(activeSlaves) < criticalThreshold[0]:
+    STATE = 'CRITICAL'
+    print("Error, no slaves available")
+    sys.exit(STATE)
+if len(activeSentinel) < criticalThreshold[1]:
+    STATE = 'CRITICAL'
+    print("Error, no sentinels available")
     sys.exit(STATE)
 sys.exit(STATE)
