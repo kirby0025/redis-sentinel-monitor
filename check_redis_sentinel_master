@@ -36,19 +36,19 @@ warningThreshold = ARGS['warning'].split(',')
 criticalThreshold = ARGS['warning'].split(',')
 activeSlaves = sentinel.discover_slaves(ARGS['master'])
 activeSentinel = sentinel.discover_slaves(ARGS['master'])
-if len(activeSlaves) < warningThreshold[0]:
+if len(activeSlaves) < int(warningThreshold[0]):
     STATE = 'WARNING'
     print("Warning, missing slaves")
     sys.exit(STATE)
-if len(activeSentinel) < warningThreshold[1]:
+if len(activeSentinel) < int(warningThreshold[1]):
     STATE = 'WARNING'
     print("Warning, missing sentinels")
     sys.exit(STATE)
-if len(activeSlaves) < criticalThreshold[0]:
+if len(activeSlaves) < int(criticalThreshold[0]):
     STATE = 'CRITICAL'
     print("Error, no slaves available")
     sys.exit(STATE)
-if len(activeSentinel) < criticalThreshold[1]:
+if len(activeSentinel) < int(criticalThreshold[1]):
     STATE = 'CRITICAL'
     print("Error, no sentinels available")
     sys.exit(STATE)
