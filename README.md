@@ -5,4 +5,4 @@ Check for the number of sentinels and slaves running and trigger regarding argum
 
 Todo :
 * Adding number of slaves and sentinels monitoring -> OK
-* Find another way to monitor sentinels number.
+* Find another way to monitor sentinels number -> OK
