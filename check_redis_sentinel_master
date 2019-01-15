@@ -34,22 +34,28 @@ except redis.sentinel.MasterNotFoundError:
 
 warningThreshold = ARGS['warning'].split(',')
 criticalThreshold = ARGS['warning'].split(',')
-activeSlaves = sentinel.discover_slaves(ARGS['master'])
-activeSentinel = sentinel.discover_slaves(ARGS['master'])
-if len(activeSlaves) < int(warningThreshold[0]):
-    STATE = 'WARNING'
-    print("Warning, missing slaves")
-    sys.exit(STATE)
-if len(activeSentinel) < int(warningThreshold[1]):
-    STATE = 'WARNING'
-    print("Warning, missing sentinels")
-    sys.exit(STATE)
-if len(activeSlaves) < int(criticalThreshold[0]):
+# Getting current slaves and sentinels info
+sentinelsInfo = redisConnection.info('sentinel')
+activeSlaves = sentinelsInfo['master0']['slaves']
+activeSentinels = sentinelsInfo['master0']['sentinels']
+activeMasterName = sentinelsInfo['master0']['address']
+
+if activeSlaves < int(criticalThreshold[0]):
     STATE = 'CRITICAL'
-    print("Error, no slaves available")
+    print"Error, no slaves available"
     sys.exit(STATE)
-if len(activeSentinel) < int(criticalThreshold[1]):
+if activeSentinels < int(criticalThreshold[1]):
     STATE = 'CRITICAL'
-    print("Error, no sentinels available")
+    print"Error, no sentinels available"
     sys.exit(STATE)
+if activeSlaves < int(warningThreshold[0]):
+    STATE = 'WARNING'
+    print"Warning, missing slaves"
+    sys.exit(STATE)
+if activeSentinels < int(warningThreshold[1]):
+    STATE = 'WARNING'
+    print"Warning, missing sentinels"
+    sys.exit(STATE)
+print "Everything ok, master is %s" % (activeMasterName)
 sys.exit(STATE)
+
